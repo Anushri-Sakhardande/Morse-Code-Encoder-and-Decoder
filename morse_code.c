@@ -6,28 +6,43 @@
 
 unsigned long int temp1=0, temp2=0,i,j,temp ;
 unsigned char flag1 =0, flag2 =0;
+unsigned int flag;
 unsigned char msg[] = {"DECODE OR ENCODE"};
 unsigned long int init_command[] = {0x30,0x30,0x30,0x20,0x28,0x0c,0x06,0x01,0x80};
 
 unsigned int row, col;
 
-unsigned char morse[] = {".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", "-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----."};
+unsigned char morse[][] = {".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", "-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----."};
 unsigned int seven_alpha[]={0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, 0x3D,0x76, 0x30, 0x1E, 0x75, 0x38, 0x55, 0x54, 0x5C, 0x73, 0x67, 0x50, 0x6D, 0x78, 0x3E, 0x1C, 0x1D, 0x64, 0x6E, 0x5B};
+	
+unsigned char KeyMap[][] ={{ '0',   0,   0,   0,   0,   0 },
+        { '1',   0,   0,   0,   0,   0 },
+        { '2', 'A', 'B', 'C',   0,   0 },
+        { '3', 'D', 'E', 'F',   0,   0 },
+        { '4', 'G', 'H', 'I',   0,   0 },
+        { '5', 'J', 'K', 'L',   0,   0 },
+        { '6', 'M', 'N', 'O',   0,   0 },
+        { '7', 'P', 'Q', 'R', 'S',   0 },
+        { '8', 'T', 'U', 'V',   0,   0 },
+        { '9', 'W', 'X', 'Y', 'Z',   0 }};
 	
 	
 void encode(void);
 void decode(void);
 	
-void display_lcd(void);
+void display_lcd(unsigned char[]);
 void lcd_write(void);
 void port_write(void);
-
-	
+				
 void input_keyboard(void);
+				
+void delay_lcd(unsigned int r1);
 
-void main(void){
+int main(void){
 	SystemInit();
 	SystemCoreClockUpdate();
+	
+	//TODO: Decide on the configurations
 	
 	//configuration for matrix keyboard and seven segment
 	LPC_PINCON->PINSEL0 = 0; //P0.4 to P0.11 GPIO data lines
@@ -38,44 +53,89 @@ void main(void){
 	LPC_GPIO1->FIODIR =0; //made input P1.23 to P1.26 (cols)
 	
 	//configuration for LCD
-	LPC_GPIO0->FIODIR = DT_CTRL | RS_CTRL | EN_CTR;
+	LPC_GPIO0->FIODIR = DT_CTRL | RS_CTRL | EN_CTRL;
 	
-	//configuration for buzzer
+	//configuration for LED
 	
 
 	
 	//select encode or decode(maybe display a select option in lcd)
 	while(1){
-			display_lcd();
-			
+			display_lcd("ENCODE OR DECODE");
 			input_keyboard();
 			
-			if(row )
+			if(row==0 && col==3){
+				encode();
+			}else if(row==1 && col==3){
+				decode();
+			}else{
+				display_lcd("ERROR");
+			}
 	}
 }
 
 void encode(void){
-	//loop input from keyboard till we get an escape character maybe(maybe display a select option in lcd)
-	
-	//take keyboard input 
-	
-	// display on seven segment/lcd
+	while(1){
+		//loop input from keyboard till we get an escape character 
+		input_keyboard();
+		
+		//TODO: keep track of time elapsed
+		
+		 char keyBuffer[4]; //The input buffer.
+		 int  keyIndex = 0; //The index into keyBuffer. 
+		 int keyPress1 = -1, keyPress2; // keyboard inputs.
+		 int numKeyPresses; // The number of times the same key has been pressed this phase.
+
+
+
+			 /* keyboard processing loop. */
+			 while ( 1 )
+			 {
+				 // Phase timed out.  Commit current character.
+				 keyBuffer[keyIndex++] = KeyMap[keyPress1][numKeyPresses - 1];
+				 keyPress1 = -1;
+				}
+				if ( ( keyPress2 = KeyAvailable() ) > -1 )
+				{
+				 // Key pressed.
+				 if ( ( keyPress2 != keyPress1 ) && ( -1 != keyPress1 ) )
+				 {
+					// Different than last key.  Commit current character and start a new one.
+					keyBuffer[keyIndex++] = KeyMap[keyPress1][numKeyPresses - 1];
+					numKeyPresses = 1; // Yes, I"m using 1-based indexing.  Deal.
+
+				 }else if ( keyPress2 == keyPress1 )
+				 {
+					// Pressed same key multiple times in same phase. 
+					numKeyPresses = ((numKeyPresses) % KEYMAPROWSIZE) + 1;
+					if ( 0 == KeyMap[keypress2][numKeyPresses - 1] )
+					{
+					 //Loop back to first 'valid' character associated with this key.
+					 numKeyPresses = 1;
+					}
+				 }else // -1 == keyPress1 
+				 {
+					// Pressed new key. Start new phase. 
+					numKeyPresses = 1;
+				 }
+				 keyPress1 = keyPress2.
+				}
+			 } 
+		
+		// display on seven segment
+	}
 }
 
 void decode(void){
-	//matrix keyboard input for characters expect an escape sequence after each character?
-	
-	
 	
 	while(1){
-
-		
+	//matrix keyboard input for characters expect an escape sequence after each character?
+	input_keyboard();
 	
-	//select between buzzer and led
 	
-	// output on buzzer using timers to decide the length of the beep? + led maybe?
+	// output on buzzer using timers to led
 }
-
+}
 
 //Should return which key pressed
 void input_keyboard(void){
@@ -93,22 +153,30 @@ void input_keyboard(void){
 
 						LPC_GPIO2->FIOPIN = temp;
 						flag = 0;
-						scan();
-						if(flag == 1)
-
-						temp2 = SEVEN_CODE[row][col];
-						LPC_GPIO0->FIOMASK=0xFFF87FFF;
-						LPC_GPIO0->FIOPIN = FIRST_SEG;
-						temp2 = temp2 << 4;
-						LPC_GPIO0->FIOMASK=0xFFFFF00F;
-						LPC_GPIO0->FIOPIN = temp2;
-						break;
+							
+						unsigned int temp3 = LPC_GPIO1->FIOPIN;
+						temp3 &= 0x07800000;
+						if(temp3 != 0x00000000){
+							flag = 1;
+							if (temp3 == 1 << 23)
+							col=0;
+							else if (temp3 == 1 << 24)
+							col=1;
+							else if (temp3 == 1 << 25)
+							col=2;
+							else if (temp3 == 1 << 25)
+							col=3;
+						}
+						
+						if(flag == 1){
+								break;
+						}
 			}
 	}
 }
 
 //display string onto lcd
-void display_lcd(void){
+void display_lcd(unsigned char msg[]){
 	//write to lcd
 	flag1 =0;//Command
 	for (i=0; i<9;i++)
